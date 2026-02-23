@@ -1,7 +1,7 @@
 ---
 title: "Proyecto Reglas Asociación"
 subitle: "Máster Oficial Ciencia Datos-UV"
-author: "alumnos"
+author: "Juan Alcaraz Otón, Óscar Camacho Barreda"
 output: html_notebook
 ---
 
@@ -13,7 +13,11 @@ Cargar el fichero `Qualitative_Bankruptcy.num.txt` y crear el `data.frame` `QB`.
 
 ```{r Apartado 1}
 #solucion
+rm(list=ls())
 
+library(readr)
+QB <- read_csv("Qualitative_Bankruptcy.num.txt", 
+                                       col_names = FALSE)
 ```
 
 Asigna nombres válidos a las columnas del `data.frame` (usa `make.names` para asegurarte que no contiene símbolos raros). Más información en el fichero `Qualitative_Bankruptcy.info.txt`
