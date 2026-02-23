@@ -18,8 +18,7 @@ rm(list=ls())
 library(arules)
 library(readr)
 
-QB <- read_csv("Qualitative_Bankruptcy.num.txt", 
-                                       col_names = FALSE)
+QB <- read_csv("Qualitative_Bankruptcy.num.txt", col_names = FALSE)
 ```
 
 Asigna nombres válidos a las columnas del `data.frame` (usa `make.names` para asegurarte que no contiene símbolos raros). Más información en el fichero `Qualitative_Bankruptcy.info.txt`
@@ -94,7 +93,15 @@ Obtén la descripción de las variables [incluida la clase]{.underline}. Al meno
 
 ```{r Apartado 5}
 #solucion
+lapply(names(QB), function(nombre) barplot(table(QB_disc[[nombre]]),
+                                           main = paste("Frecuencias absolutas variable", nombre, sep = " ")))
 
+# Para hacer una mejor descripión de la distribución de probabilidad de los datos hacemos una tabla con la probabilidad total que luego marginalizaremos
+Tabla_frecuencias <- xtabs(, data=QB_disc)
+Tabla_probabilidades <- prop.table(Tabla_frecuencias)
+
+# Ahora con solo marginalizar la tabla podemos conocer la relación entre cada par de variables, al haber 21 posibilidades que son muchas
+margin.table(Tabla_probabilidades, margin = c(1,7))
 ```
 
 [Describe, al menos, 2 conclusiones.]{.underline}
@@ -103,23 +110,42 @@ Obtén la descripción de las variables [incluida la clase]{.underline}. Al meno
 
 ### Análisis bivariante de las variables Cualitativas
 
-Obtén la relación entre las variables [y la clase]{.underline} (ej. matrices de contingencia). Determina el grado de asociación (ej. chi2, CramerV, ...) entre cada variable y la clase.
+Obtén la relación entre las variables [y la clase]{.underline} (ej. matrices de contingencia). Determina el grado de asociación (ej. $\chi^2$, CramerV, ...) entre cada variable y la clase.
 
 *Nota: La función PairApply de la librería DescTools permite calcular estadísticos para todos los pares. La función PlotCorr permite representar los resultados de PairApply.*
 
 ```{r Apartado 6}
 #solucion
+library(DescTools)
 
+# Hacemos una función que nos ayudará con el cálculo del test chi2, los argumentos x, y se espera que sean los nombres de las variables que se quiere analizar su relación o en su defecto serán los índices o posiciones que ocupan como columna dentro del dataframe
+Test_chi2 <- function(x,y){
+  return(chisq.test(table(x,y))$p.value)
+}
+
+Pruebas_chi2 <- PairApply(QB_disc, Test_chi2)
+PlotCorr(Pruebas_chi2)
+V_de_Cramer <- PairApply(QB_disc, CramerV)
+PlotCorr(V_de_Cramer)
 ```
 
 Contrasta los resultados con los gráficos de Mosaico de los casos más relevantes.
 
 ```{r Apartado 7}
 #solucion
+library(vcd) 
+tab1 <- mosaic(formula = ~ Industrial.Risk + Credibility, data=QB_disc, shade=T, main="Gráfico de mosaico para las únicas variables independientes")
 
+# Ahora los gráficos de mosaico para los pares de variables que tienen una dependencia (V de Cramer) mayor
+tab2 <- mosaic(formula = ~ Bankruptcy + Competitiveness, data=QB_disc, shade=T, main="Gráfico de mosaico para \n las variables más dependientes")
+tab2 <- mosaic(formula = ~ Bankruptcy + Financial.Flexibility, data=QB_disc, shade=T, main="Gráfico de mosaico para \n las variables más dependientes")
 ```
 
 [Describe, al menos, 2 conclusiones:]{.underline}
+
+- Según el test $\chi^2$ todas las variables discretizadas son dependientes una de otras (o al menos hay evidencia estadística suficiente para creerlo), con la única excepción de el par `Industrial.Risk` y `Credibility`, que es el único caso para el que el $p$-valor es menor que la significancia $0.05$. Y además se observa en el diagrama de mosaico que aproximadamente todas las clases están igualmente repartidas, lo cual apoya la hipótesis de la independencia.
+
+- En cambio, los pares de variables con mayor grado de asociación son los pares `Bankruptcy + Competitiveness` y `Bankruptcy + Financial.Flexibility`. Cosa que podemos confirmar visualmente en el diagrma de mosaico, donde por ejemplo podemos ver que las empresas menos competitivas acaban en bancarrota, mientras que aquellas que no llegaron a la bancarrota montraron un nivel intermedio o alto de competitividad.
 
 **\>\>\>\<\<\<Conclusiones del análisis bivariante...\>\>\>\<\<\<**
 
@@ -129,21 +155,29 @@ Transforma el `data.frame` en *transactions* con el nombre `QBt` y analízalas c
 
 ```{r Apartado 8}
 #solution
+library(arules)
 
+QBt <- as(QB_disc, "transactions")
+summary(QBt)
 ```
 
 Obtén las reglas de asociación que tienen, al menos, un `support` del 10% y una `confidence` del 100%. ¿Cuántas reglas se obtienen?
 
 ```{r Apartado 9}
 #solution
-
+rules <- apriori(QBt, parameter = list(supp=0.1, 
+                                    conf=1, 
+                                    minlen=1, 
+                                    maxlen=10,
+                                    target="rules"),
+        control = list(verbose=T))
 ```
 
 Muestra las 3 primeras reglas ordenadas por `lift`.
 
 ```{r Apartado 10}
 #solution
-
+inspect(head(sort(rules, by = "lift"),n=3))
 ```
 
 Obtén las reglas de asociación que tengan como **ANTECEDENTE** `Bankruptcy=B` . Reduce el número de reglas con las condiciones `lift>2 & count>50`. ¿Observas algún patrón/curiosidad en estas reglas?
@@ -152,24 +186,58 @@ Obtén las reglas de asociación que tengan como **ANTECEDENTE** `Bankruptcy=B` 
 
 ```{r Apartado 11}
 #solucion
-
+inspect(subset(rules, subset = lhs %ain% "Bankruptcy=B" & lift>2 & count>50))
 ```
 
 Obtén las reglas de asociación en las que **no** aparezca la variable`Bankruptcy` (ni en el antecedente ni en la consecuencia). Representa las reglas. ¿Para qué sirven estas reglas/grafo si no aparece la variable objetivo?
 
 ```{r Apartado 12}
-#solucion
-
+#solution
+inspect(subset(rules, subset = !(lhs %pin% "Bankruptcy") & !(rhs %pin% "Bankruptcy")))
 ```
+
+Primeramente nos podrían servir para saber que ciertas variables no son independientes unas de otras, aunque ya lo supiésemos por el análisis exploratorio inicial. Otra utilidad sería que estas relaciones nos ayudan a completar el grafo de reglas e implicaciones, sin estas reglas, aunque no incluyan la variable objetivo, las relaciones podrían estar incompletas y es posible que nos faltase información importante sobre los mecanismos mediante los cuales las diferentes variables afectan a la variable objetivo.
+
 
 ## Predicción con reglas de asociación
 
 Desarrolla un modelo de clasificación basado en reglas de asociación para estimar la Bancarrota. Comprueba la bondad del modelo (sensibilidad y especificidad) dividiendo el conjunto de datos en Entrenamiento 80% y Test 20%. Utiliza la función `createDataPartition` y `confusionMatrix` del paquete `caret`.
 
-```{r Apartado 13}
+```{r Apartado 13: Modelo de una sola regla}
 set.seed(666)
 #solucion
 
+#solucion
+library(caret)
+library(OneR)
+
+# Partición de los datos en entrenamiento y test
+train_Index <- createDataPartition(QB_disc$Bankruptcy, times=1, p=0.8, list=F)
+QB_train <- QB_disc[train_Index,]
+QB_test <- QB_disc[-train_Index,]
+
+modelo_Una_Regla <- OneR(Bankruptcy~., data=QB_train, verbose = F)
+summary(modelo_Una_Regla)
+
+prediction_test <- factor(predict(modelo_Una_Regla, QB_test), levels = c("B", "NB"))
+table(prediction_test, QB_test$Bankruptcy)
+```
+
+```{r Apartado 13: Modelo CBA de varias reglas}
+library(arulesCBA)
+modelo_CBA <- CBA(Bankruptcy~., 
+                 data=QB_train, 
+                 verbose = F,
+                 parameter = list(supp=0.1,
+                                  conf = 1,
+                                  minlen = 1,
+                                  maxlen = 10))
+
+prediction_CBA_test <- factor(predict(modelo_CBA, QB_test), levels = c("B", "NB"))
+prediction_CBA_train <- factor(predict(modelo_CBA, QB_train), levels = c("B", "NB"))
+
+table(prediction_CBA_test, QB_test$Bankruptcy)
+table(prediction_CBA_train, QB_train$Bankruptcy)
 ```
 
 [Reflexiones sobre el modelo basado en reglas:]{.underline}
