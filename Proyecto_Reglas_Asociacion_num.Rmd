@@ -15,7 +15,9 @@ Cargar el fichero `Qualitative_Bankruptcy.num.txt` y crear el `data.frame` `QB`.
 #solucion
 rm(list=ls())
 
+library(arules)
 library(readr)
+
 QB <- read_csv("Qualitative_Bankruptcy.num.txt", 
                                        col_names = FALSE)
 ```
@@ -34,45 +36,45 @@ Sabiendo que las variables numéricas representan un valor entre 0 y 10 para ind
 ```{r Apartado 3}
 #solucion
 
-# HAY QUE ARREGLAR VARIAS COSAS
-cols_numericas <- sapply(QB,is.numeric)
-nombres_numericas <- names(QB)[cols_numericas]
+# Pasamos la columna de Bankruptcy a factor para ordenarla con "B" como primera etiqueta
+QB$Bankruptcy <- as.factor(QB$Bankruptcy)
 
-for(col_name in nombres_numericas){
+# Obtenemos los índices de columnas numéricas y sus nombres
+cols_num <- sapply(QB,is.numeric)
+nombres_num <- names(QB)[cols_num]
+
+for(col_name in nombres_num){
   
-  # Extraemos el vector numérico original
+  # Extraemos el vector numérico original de la columna
   vec_num <- QB[[col_name]]
   
-  # 1. Dibujamos el histograma
+  # Dibujamos el histograma
   hist(vec_num,
        breaks = 10,
        main = paste("Discretización de", col_name),
-       xlab = "Valoración (0-10)", 
+       xlab = "Valoración", 
        col = "lightblue")
   
-  # 2. Calculamos los cortes sobre el vector original
+  # Calculamos los cortes entre los factores sobre el vector original
   cortes <- discretize(vec_num, method = "interval", breaks = 3, onlycuts = TRUE)
   
-  # 3. Dibujamos las líneas rojas
-  abline(v = cortes, col = "red", lwd = 2, lty = 2)
+  # Dibujamos las líneas
+  abline(v = cortes, col = "red")
 }
 
-
+# Aplicamos la discretización a las columnas de una copia del df
 QB_disc <- QB
-QB_disc[,cols_numericas] <- lapply(QB[,cols_numericas],function(x){discretize(x,
-  method = "interval",
-  breaks = 3,
-  labels = c("N", "A", "P"),
-  ordered_result = TRUE)})
 
-lapply(QB[,cols_numericas],function(x){
-  x <- hist(x,
-  breaks = 10,
-  main = cat("Discretización de",colnames(x)),
-  xlab = "Valoración (0-10)", 
-  col = "lightblue")
-  x <- abline(v=discretize(x, method = "interval", breaks = 3, onlycuts = TRUE), 
-       col = "red", lwd = 2, lty = 2)})
+QB_disc[, cols_num] <- lapply(QB[, cols_num], function(x) {
+  # Asignamos las etiquetas en los intervalos correspondientes
+  val_disc <- discretize(x, method = "interval", breaks = 3, labels = c("N", "A", "P"))
+  
+  # Garantizamos que son factores ordenados con N < A < P
+  ordered(val_disc, levels = c("N", "A", "P"))
+})
+
+# Verificamos la estructura final para comprobar los niveles ordenados
+str(QB_disc)
 ```
 
 Asegúrate que toda las variables son factores de 3 niveles y ORDENADOS que respetan N\<A\<P. La clase `Bankruptcy` debe tener como primera etiqueta "B".
