@@ -3,6 +3,7 @@ title: "Proyecto Reglas Asociación"
 author: "Juan Alcaraz Otón, Óscar Camacho Barreda"
 subitle: "Máster Oficial Ciencia Datos-UV"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -123,12 +124,13 @@ for (nombre in names(QB_disc)) {
 
 [Describe, al menos, 2 conclusiones.]{.underline}
 
-**\>\>\>\<\<\<Conclusiones del análisis univariante...\>\>\>\<\<\<**
 - Analizando la variable Bankruptcy, encontramos una proporción de 107 casos de bancarrota (42.8%) frente a 143 de no bancarrota (57.2%). Aunque el escenario ideal sería un equilibrio perfecto del 50%, esta distribución es lo suficientemente balanceada como para evitar que se produzcan sesgos significativos por la presencia mayoritaria de una clase a la hora de generar las reglas.
 
 - En la gran mayoría de las variables predictoras, la categoría "A" (promedio) es la menos frecuente. Esto indica una tendencia en los expertos a evaluar los perfiles de las empresas de forma claramente negativa o positiva, evitando utilizar valoraciones intermedias.
 
 - Las valoraciones negativas "N" son las más comunes en todas las variables. Esto resulta coherente con el alto número de empresas en bancarrota presentes en los datos (42.8%). Dado que una gran parte de las observaciones presentan factores de riesgo con valoración negativa, es esperable que un porcentaje significativo de estas termine quebrando.
+
+**\>\>\>\<\<\<Conclusiones del análisis univariante...\>\>\>\<\<\<**
 
 ### Análisis bivariante de las variables Cualitativas
 
@@ -263,8 +265,23 @@ table(prediction_CBA_train, QB_train$Bankruptcy)
 
 [Reflexiones sobre el modelo basado en reglas:]{.underline}
 
+El modelo demuestra un ajuste excelente a los datos de test. La matriz de confusión del algoritmo CBA muestra que todas las predicciones, tanto de bancarrota como de no bancarrota, fueron correctas, alcanzando una sensibilidad y especificidad del 100% .
+
+En la fase de entrenamiento, el modelo tan solo cometió un error (un falso negativo), prediciendo "NB" cuando en realidad era "B". En un entorno real, es fundamental minimizar este tipo de fallos: diagnosticar que una empresa está a salvo y que termine quebrando es un peor resultado que emitir una falsa alarma, ya que esta última al menos causaría que la empresa tome medidas preventivas.
+
+Aun así, hay que ser cautelosos con estos modelos. La muestra es relativamente pequeña, con solo 250 empresas. Al exigir una confianza absoluta del 100%, estamos forzando al algoritmo a memorizar patrones muy específicos de este conjunto y causando un posible sobreajuste. Estos patrones serán difícilmente generalizables a la complejidad caótica del mercado real.
+
 **\>\>\>\<\<\<Conclusiones del modelo basado en reglas...\>\>\>\<\<\<**
 
 ¿has utilizado todas las variables en el modelo y por qué?
 
+En el modelo CBA se usaron todas las variables para que el algoritmo tuviera la libertad de explorar todas las combinaciones posibles y descubrir cuáles son las asociaciones multivariantes más potentes en los datos.
+
 ¿has seleccionado reglas y por qué? ¿en base a qué criterio?
+
+Las reglas del modelo CBA fueron filtradas y seleccionadas para evitar aquellas que fueran producto de la casualidad y garantizar así unas predicciones robustas. Los parámetros utilizados fueron:
+- Soporte del 10% para obtener patrones frecuentes que representen a una parte significativa de las empresas.
+
+- Confianza del 100% para asegurar que siempre que se cumplan las condiciones de la regla, el resultado sea exactamente el que se esperaba. 
+
+- Longitud de regla mínima de 1 y máxima de 10 para evitar combinaciones excesivamente largas y mantener así una interpretación lógica y sencilla a ojos de una persona.
