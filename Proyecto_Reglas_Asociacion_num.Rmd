@@ -1,8 +1,10 @@
 ---
 title: "Proyecto Reglas Asociación"
-subitle: "Máster Oficial Ciencia Datos-UV"
 author: "Juan Alcaraz Otón, Óscar Camacho Barreda"
-output: html_notebook
+subitle: "Máster Oficial Ciencia Datos-UV"
+output:
+  html_document:
+    df_print: paged
 ---
 
 ## Qualitative Bankruptcy Data Set
@@ -13,6 +15,7 @@ Cargar el fichero `Qualitative_Bankruptcy.num.txt` y crear el `data.frame` `QB`.
 
 ```{r Apartado 1}
 #solucion
+
 rm(list=ls())
 
 library(arules)
@@ -35,7 +38,7 @@ Sabiendo que las variables numéricas representan un valor entre 0 y 10 para ind
 ```{r Apartado 3}
 #solucion
 
-# Pasamos la columna de Bankruptcy a factor para ordenarla con "B" como primera etiqueta
+# Pasamos la columna de Bankruptcy a factor
 QB$Bankruptcy <- as.factor(QB$Bankruptcy)
 
 # Obtenemos los índices de columnas numéricas y sus nombres
@@ -71,9 +74,6 @@ QB_disc[, cols_num] <- lapply(QB[, cols_num], function(x) {
   # Garantizamos que son factores ordenados con N < A < P
   ordered(val_disc, levels = c("N", "A", "P"))
 })
-
-# Verificamos la estructura final para comprobar los niveles ordenados
-str(QB_disc)
 ```
 
 Asegúrate que toda las variables son factores de 3 niveles y ORDENADOS que respetan N\<A\<P. La clase `Bankruptcy` debe tener como primera etiqueta "B".
@@ -81,6 +81,12 @@ Asegúrate que toda las variables son factores de 3 niveles y ORDENADOS que resp
 ```{r Apartado 4}
 #solucion
 
+# Verificamos que la estructura de "Bankruptcy" tenga "B" como primera etiqueta
+QB_disc$Bankruptcy <- as.factor(QB_disc$Bankruptcy)
+QB_disc$Bankruptcy <- relevel(QB_disc$Bankruptcy, ref = "B")
+
+# Podemos ver que todas las variables numéricas aparecen como factores de 3 niveles ordenados (Ord.factor w/ 3 levels "N"<"A"<"P")
+str(QB_disc) 
 ```
 
 ## Análisis Cualitativo
@@ -93,20 +99,36 @@ Obtén la descripción de las variables [incluida la clase]{.underline}. Al meno
 
 ```{r Apartado 5}
 #solucion
-lapply(names(QB), function(nombre) barplot(table(QB_disc[[nombre]]),
-                                           main = paste("Frecuencias absolutas variable", nombre, sep = " ")))
 
-# Para hacer una mejor descripión de la distribución de probabilidad de los datos hacemos una tabla con la probabilidad total que luego marginalizaremos
-Tabla_frecuencias <- xtabs(, data=QB_disc)
-Tabla_probabilidades <- prop.table(Tabla_frecuencias)
+# Resumimos las variables rápidamente para ver cómo se distribuyen los datos
+summary(QB_disc)
 
-# Ahora con solo marginalizar la tabla podemos conocer la relación entre cada par de variables, al haber 21 posibilidades que son muchas
-margin.table(Tabla_probabilidades, margin = c(1,7))
+# Tablas de frecuencias relativas y absolutas
+for (nombre in names(QB_disc)) {
+  cat("\n---", nombre, "---\n")
+  frec_abs <- table(QB_disc[[nombre]])
+  frec_rel <- prop.table(frec_abs)
+  
+  # Juntamos ambas en una matriz para que se lea mejor
+  print(rbind(Absoluta = frec_abs, Relativa = round(frec_rel, 3)))
+}
+
+# Gráficos de barras
+for (nombre in names(QB_disc)) {
+  barplot(table(QB_disc[[nombre]]),
+          main = nombre,
+          ylab = "Frecuencia")
+}
 ```
 
 [Describe, al menos, 2 conclusiones.]{.underline}
 
 **\>\>\>\<\<\<Conclusiones del análisis univariante...\>\>\>\<\<\<**
+- Analizando la variable Bankruptcy, encontramos una proporción de 107 casos de bancarrota (42.8%) frente a 143 de no bancarrota (57.2%). Aunque el escenario ideal sería un equilibrio perfecto del 50%, esta distribución es lo suficientemente balanceada como para evitar que se produzcan sesgos significativos por la presencia mayoritaria de una clase a la hora de generar las reglas.
+
+- En la gran mayoría de las variables predictoras, la categoría "A" (promedio) es la menos frecuente. Esto indica una tendencia en los expertos a evaluar los perfiles de las empresas de forma claramente negativa o positiva, evitando utilizar valoraciones intermedias.
+
+- Las valoraciones negativas "N" son las más comunes en todas las variables. Esto resulta coherente con el alto número de empresas en bancarrota presentes en los datos (42.8%). Dado que una gran parte de las observaciones presentan factores de riesgo con valoración negativa, es esperable que un porcentaje significativo de estas termine quebrando.
 
 ### Análisis bivariante de las variables Cualitativas
 
@@ -118,7 +140,7 @@ Obtén la relación entre las variables [y la clase]{.underline} (ej. matrices d
 #solucion
 library(DescTools)
 
-# Hacemos una función que nos ayudará con el cálculo del test chi2, los argumentos x, y se espera que sean los nombres de las variables que se quiere analizar su relación o en su defecto serán los índices o posiciones que ocupan como columna dentro del dataframe
+# Hacemos una función que nos ayudará con el cálculo del test chi2, los argumentos (x, y) se espera que sean los nombres de las variables que se quiere analizar su relación o en su defecto serán los índices o posiciones que ocupan como columna dentro del dataframe
 Test_chi2 <- function(x,y){
   return(chisq.test(table(x,y))$p.value)
 }
@@ -134,11 +156,11 @@ Contrasta los resultados con los gráficos de Mosaico de los casos más relevant
 ```{r Apartado 7}
 #solucion
 library(vcd) 
-tab1 <- mosaic(formula = ~ Industrial.Risk + Credibility, data=QB_disc, shade=T, main="Gráfico de mosaico para las únicas variables independientes")
+tab1 <- mosaic(formula = ~ Industrial.Risk + Credibility, data=QB_disc, shade=T, main="Gráfico de mosaico para \n las únicas variables independientes")
 
 # Ahora los gráficos de mosaico para los pares de variables que tienen una dependencia (V de Cramer) mayor
 tab2 <- mosaic(formula = ~ Bankruptcy + Competitiveness, data=QB_disc, shade=T, main="Gráfico de mosaico para \n las variables más dependientes")
-tab2 <- mosaic(formula = ~ Bankruptcy + Financial.Flexibility, data=QB_disc, shade=T, main="Gráfico de mosaico para \n las variables más dependientes")
+tab3 <- mosaic(formula = ~ Bankruptcy + Financial.Flexibility, data=QB_disc, shade=T, main="Gráfico de mosaico para \n las variables más dependientes")
 ```
 
 [Describe, al menos, 2 conclusiones:]{.underline}
@@ -198,7 +220,6 @@ inspect(subset(rules, subset = !(lhs %pin% "Bankruptcy") & !(rhs %pin% "Bankrupt
 
 Primeramente nos podrían servir para saber que ciertas variables no son independientes unas de otras, aunque ya lo supiésemos por el análisis exploratorio inicial. Otra utilidad sería que estas relaciones nos ayudan a completar el grafo de reglas e implicaciones, sin estas reglas, aunque no incluyan la variable objetivo, las relaciones podrían estar incompletas y es posible que nos faltase información importante sobre los mecanismos mediante los cuales las diferentes variables afectan a la variable objetivo.
 
-
 ## Predicción con reglas de asociación
 
 Desarrolla un modelo de clasificación basado en reglas de asociación para estimar la Bancarrota. Comprueba la bondad del modelo (sensibilidad y especificidad) dividiendo el conjunto de datos en Entrenamiento 80% y Test 20%. Utiliza la función `createDataPartition` y `confusionMatrix` del paquete `caret`.
@@ -219,8 +240,8 @@ QB_test <- QB_disc[-train_Index,]
 modelo_Una_Regla <- OneR(Bankruptcy~., data=QB_train, verbose = F)
 summary(modelo_Una_Regla)
 
-prediction_test <- factor(predict(modelo_Una_Regla, QB_test), levels = c("B", "NB"))
-table(prediction_test, QB_test$Bankruptcy)
+#prediction_test <- factor(predict(modelo_Una_Regla, newdata=QB_test), levels = c("B", "NB"))
+#table(prediction_test, QB_test$Bankruptcy)
 ```
 
 ```{r Apartado 13: Modelo CBA de varias reglas}
