@@ -3,9 +3,9 @@ title: "Proyecto Reglas Asociación"
 author: "Juan Alcaraz Otón, Óscar Camacho Barreda"
 subitle: "Máster Oficial Ciencia Datos-UV"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ## Qualitative Bankruptcy Data Set
@@ -14,7 +14,7 @@ Utilizaremos UNA VERSIÓN PARECIDA PERO NO IGUAL del conjunto de datos `Qualitat
 
 Cargar el fichero `Qualitative_Bankruptcy.num.txt` y crear el `data.frame` `QB`.
 
-```{r Apartado 1}
+```{r Apartado 1, message=FALSE}
 #solucion
 
 rm(list=ls())
@@ -130,8 +130,6 @@ for (nombre in names(QB_disc)) {
 
 - Las valoraciones negativas "N" son las más comunes en todas las variables. Esto resulta coherente con el alto número de empresas en bancarrota presentes en los datos (42.8%). Dado que una gran parte de las observaciones presentan factores de riesgo con valoración negativa, es esperable que un porcentaje significativo de estas termine quebrando.
 
-**\>\>\>\<\<\<Conclusiones del análisis univariante...\>\>\>\<\<\<**
-
 ### Análisis bivariante de las variables Cualitativas
 
 Obtén la relación entre las variables [y la clase]{.underline} (ej. matrices de contingencia). Determina el grado de asociación (ej. $\chi^2$, CramerV, ...) entre cada variable y la clase.
@@ -167,11 +165,9 @@ tab3 <- mosaic(formula = ~ Bankruptcy + Financial.Flexibility, data=QB_disc, sha
 
 [Describe, al menos, 2 conclusiones:]{.underline}
 
-- Según el test $\chi^2$ todas las variables discretizadas son dependientes una de otras (o al menos hay evidencia estadística suficiente para creerlo), con la única excepción de el par `Industrial.Risk` y `Credibility`, que es el único caso para el que el $p$-valor es menor que la significancia $0.05$. Y además se observa en el diagrama de mosaico que aproximadamente todas las clases están igualmente repartidas, lo cual apoya la hipótesis de la independencia.
+- Según el test $\chi^2$ en todos los pares variables discretizadas hay dependencia entre ambas variables (o al menos hay evidencia estadística suficiente para creerlo), con la única excepción del par `Industrial.Risk` y `Credibility`, que es el único caso para el que el $p$-valor es menor que la significancia $0.05$. Y además se observa en el diagrama de mosaico que aproximadamente todas las clases están igualmente repartidas, lo cual apoya la hipótesis de la independencia.
 
-- En cambio, los pares de variables con mayor grado de asociación son los pares `Bankruptcy + Competitiveness` y `Bankruptcy + Financial.Flexibility`. Cosa que podemos confirmar visualmente en el diagrma de mosaico, donde por ejemplo podemos ver que las empresas menos competitivas acaban en bancarrota, mientras que aquellas que no llegaron a la bancarrota montraron un nivel intermedio o alto de competitividad.
-
-**\>\>\>\<\<\<Conclusiones del análisis bivariante...\>\>\>\<\<\<**
+- En cambio, según la V de Cramer, los pares de variables con mayor grado de asociación son los pares `Bankruptcy + Competitiveness` y `Bankruptcy + Financial.Flexibility`. Cosa que podemos confirmar visualmente en el diagrma de mosaico, donde por ejemplo podemos ver que las empresas menos competitivas acaban en bancarrota, mientras que aquellas que no llegaron a la bancarrota mostraron un nivel intermedio o alto de competitividad.
 
 ## Reglas de Asociación
 
@@ -229,8 +225,6 @@ Desarrolla un modelo de clasificación basado en reglas de asociación para esti
 ```{r Apartado 13: Modelo de una sola regla}
 set.seed(666)
 #solucion
-
-#solucion
 library(caret)
 library(OneR)
 
@@ -271,7 +265,7 @@ En la fase de entrenamiento, el modelo tan solo cometió un error (un falso nega
 
 Aun así, hay que ser cautelosos con estos modelos. La muestra es relativamente pequeña, con solo 250 empresas. Al exigir una confianza absoluta del 100%, estamos forzando al algoritmo a memorizar patrones muy específicos de este conjunto y causando un posible sobreajuste. Estos patrones serán difícilmente generalizables a la complejidad caótica del mercado real.
 
-**\>\>\>\<\<\<Conclusiones del modelo basado en reglas...\>\>\>\<\<\<**
+**Conclusiones del modelo basado en reglas**
 
 ¿has utilizado todas las variables en el modelo y por qué?
 
