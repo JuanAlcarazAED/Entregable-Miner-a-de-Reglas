@@ -53,12 +53,18 @@ B.lv <- c("Yes", "No")
 
 A.prob <- array(c(0.2, 0.4, 0.4), dim = 3, dimnames = list(A = A.lv))
 T.prob <- array(c(0.3, 0.7), dim = 2, dimnames = list(T = T.lv))
-M.prob <- array(c(0.9, 0.1, 0.4, 0.6, 0.3, 0.7,
-                  0.8, 0.2, 0.3, 0.7, 0.1, 0.9), 
+M.prob <- array(c(0.1,0.9,0.6,0.4,0.7,0.3,
+                  0.2,0.8,0.7,0.3,0.9,0.1), 
                 dim = c(2,3,2), dimnames = list(M = M.lv, A = A.lv, T = T.lv))
 
 SP.prob <- array(c(0.8, 0.2, 0.1, 0.9), dim = c(2,2), dimnames = list(SP = SP.lv, M = M.lv))
 B.prob <- array(c(0.7, 0.3, 0.1, 0.9), dim = c(2,2), dimnames = list(B = B.lv, M = M.lv))
+
+A.prob
+T.prob
+ftable(M.prob,col.vars="M")
+ftable(SP.prob,col.vars="SP")
+ftable(B.prob,col.vars="B")
 
 cpt <- list(A=A.prob, T=T.prob, M=M.prob, SP=SP.prob, B=B.prob)
 ```
@@ -89,7 +95,7 @@ Determina las probabilidades del Kilometraje de los vehículos, $P(M)$, sin ning
 
 ```{r Apartado 6}
 #solucion
-q1 <- querygrain(Garage, nodes=c("M"), type="marginal")
+q1 <- querygrain(Garage, nodes=c("M"), type="marginal")$M
 q1
 ```
 
@@ -97,7 +103,8 @@ Interpreta la etiquetas de la Edad en función del Kilometraje.
 
 ```{r Apartado 7}
 #solución 
-
+q2 <- querygrain(Garage,node=c("A","M"),type="conditional")
+ftable(q2,col.vars = "A")
 ```
 
 ¿Qué combinación de Edad y tipo de coche es menos frecuente?
@@ -121,7 +128,7 @@ Nos llama la grúa al taller y sabemos que nos llega un coche de tal edad y tipo
 ```{r Apartado 10}
 #solución 
 q5 <- querygrain(Garage, nodes=c("B", "A", "T"), type="conditional")
-q5
+ftable(q5,col.vars="B")
 ```
 
 ¿Cuál es la situación más probable (MAP) en nuestro taller? ¿tiene sentido?
@@ -129,10 +136,12 @@ q5
 ```{r Apartado 11}
 #solucion
 q6 <- querygrain(Garage, nodes=c("A", "T", "M", "SP", "B"), type="joint")
-which(q6 == max(q6), arr.ind = TRUE)
+nombres<-dimnames(q6)
+indices<-arrayInd(which.max(q6),.dim=dim(q6))
+c(max(q6),mapply(`[`, nombres, indices))
 ```
 
-**Respuesta:** los más común es un coche viejo (`A = 3`, que significa `"Old"`), modelo A2, con kilometraje alto, al cual no hay que cambiarle ni las bujías ni los frenos. El resultado es algo contraintuitivo, pues era esperable que los coches de mayor kilometraje y más antiguos, cambien sus piezas de forma frecuente, debido al desgaste por el uso.
+**Respuesta:** los más común es un coche viejo (`A = 3`, que significa `"Old"`), modelo A2, con kilometraje alto, al cual hay que cambiarle ni las bujías ni los frenos. El resultado es intuitivo, pues es esperable que los coches de mayor kilometraje y más antiguos, cambien sus piezas de forma frecuente, debido al desgaste por el uso y la edad.
 
 ## Razonamiento con Evidencias
 
