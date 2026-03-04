@@ -22,32 +22,52 @@ Un taller dispone de una *Red Bayesiana* para modelizar las probabilidades de su
 
 Escribe de manera **factorizada** la función densidad de probabilidad conjunta P(A,T,M,SP,B)
 
-$P(A,T,M,SP,B)=$
+$$
+Pr(A,T,M,SP,B) = Pr(A) \cdot Pr(T) \cdot Pr(M | A, T) \cdot Pr(SP | M) \cdot Pr(B|M)
+$$
 
 ## Grafo Acíclico Dirigido
 
 Creación del Grafo Acíclico Dirigido según probabilidad factorizada.
 
-```{r}
+```{r Apartado 2}
+rm(list=ls())
 library(bnlearn)
-#solucion
 
+#solucion
+dag <- model2network("[A][T][M|A:T][SP|M][B|M]")
 ```
 
 ## CPT, Tablas de probabilidad condicionada
 
 Crea las matrices/arrays de probabilidad condicionada para cada nodo para la creación de una red bayesiana discreta según la librería `bnlearn`.
 
-```{r}
+```{r Apartado 3}
 
+A.lv <- c("New", "Middle", "Old")
+T.lv <- c("A1", "A2")
+M.lv <- c("H", "L")
+SP.lv <- c("Yes", "No")
+B.lv <- c("Yes", "No")
+
+A.prob <- array(c(0.2, 0.4, 0.4), dim = 3, dimnames = list(A = A.lv))
+T.prob <- array(c(0.3, 0.7), dim = 2, dimnames = list(T = T.lv))
+M.prob <- array(c(0.9, 0.1, 0.4, 0.6, 0.3, 0.7,
+                  0.8, 0.2, 0.3, 0.7, 0.1, 0.9), 
+                dim = c(2,3,2), dimnames = list(M = M.lv, A = A.lv, T = T.lv))
+
+SP.prob <- array(c(0.8, 0.2, 0.1, 0.9), dim = c(2,2), dimnames = list(SP = SP.lv, M = M.lv))
+B.prob <- array(c(0.7, 0.3, 0.1, 0.9), dim = c(2,2), dimnames = list(B = B.lv, M = M.lv))
+
+cpt <- list(A=A.prob, T=T.prob, M=M.prob, SP=SP.prob, B=B.prob)
 ```
 
 ## Red Bayesiana
 
 Unimos el grafo y las distribuciones locales para crear la *Red Bayesiana*.
 
-```{r}
-bn <- custom.fit(dag,cpt)
+```{r Apartado 4}
+bn_Garage <- custom.fit(dag, cpt)
 ```
 
 # Inferencia
@@ -56,89 +76,96 @@ bn <- custom.fit(dag,cpt)
 
 Crea el árbol de inferencia `junction tree` para acelerar los cálculos de las probabilidades condicionadas de manera exacta.
 
-```{r}
+```{r Apartado 5}
 library(gRain)
-jt<-compile(as.grain(bn))
-summary(jt)
+Garage <- compile(as.grain(bn_Garage))
+summary(Garage)
 ```
 
 ## Razonamiento sin Evidencias
 
 Determina las probabilidades del Kilometraje de los vehículos, $P(M)$, sin ninguna información adicional (evidencias). ¿Hay algún resultado más esperable que otro considerando que `h=high` y `l=low`?
 
-```{r}
+```{r Apartado 6}
 #solucion
-
+q1 <- querygrain(Garage, nodes=c("M"), type="marginal")
+q1
 ```
 
 Interpreta la etiquetas de la Edad en función del Kilometraje.
 
-```{r}
+```{r Apartado 7}
 #solución 
 
 ```
 
 ¿Qué combinación de Edad y tipo de coche es menos frecuente?
 
-```{r}
+```{r Apartado 8}
 #solución 
-
+q3 <- querygrain(Garage, nodes=c("A", "T"), type="joint")
+q3
 ```
+**Respuesta:** a la vista de la tabla, el tipo menos frecuente es un modelo A1 nuevo.
 
 Determina el Kilometraje medio para cada tipo de coche. Supón que `h=high=150000` y `l=low=50000`
 
-```{r}
+```{r Apartado 9}
 #solución 
 
 ```
 
 Nos llama la grúa al taller y sabemos que nos llega un coche de tal edad y tipo. ¿Qué probabilidad esperamos de cambiarle los frenos? **Nota: mira la ayuda de querygrain para condicionar por 2 variables**
 
-```{r}
+```{r Apartado 10}
 #solución 
-
+q5 <- querygrain(Garage, nodes=c("B", "A", "T"), type="conditional")
+q5
 ```
 
 ¿Cuál es la situación más probable (MAP) en nuestro taller? ¿tiene sentido?
 
-```{r}
+```{r Apartado 11}
 #solucion
-
+q6 <- querygrain(Garage, nodes=c("A", "T", "M", "SP", "B"), type="joint")
+which(q6 == max(q6), arr.ind = TRUE)
 ```
+
+**Respuesta:** los más común es un coche viejo (`A = 3`, que significa `"Old"`), modelo A2, con kilometraje alto, al cual no hay que cambiarle ni las bujías ni los frenos. El resultado es algo contraintuitivo, pues era esperable que los coches de mayor kilometraje y más antiguos, cambien sus piezas de forma frecuente, debido al desgaste por el uso.
 
 ## Razonamiento con Evidencias
 
 Determina cómo se modifica la probabilidad de cambiar los frenos si sabemos que el vehículo es viejo. ¿Aumenta o disminuye? ¿(según las diapositivas de clase) es razonamiento evidencial o causal?
 
-```{r}
+```{r Apartado 12}
 #solucion
 
 ```
 
 Determina cómo se modifica la probabilidad de que el vehículo sea nuevo, cuando sabemos que necesita un cambio de bujías y de frenos. ¿(según las diapositivas de clase) es razonamiento evidencial o causal?
 
-```{r}
+```{r Apartado 13}
 #solucion
 
 ```
 
 Determina cómo se modifica la probabilidad de la edad para cada tipo de vehículo, cuando sabemos que Kilometraje es alto.
 
-```{r}
+```{r Apartado 14}
 #solución 
 
 ```
 
 ¿Cómo se modifican las expectativas (de las combinaciones) de las reparaciones cuando se modifica el tipo de coche?
 
-```{r}
+```{r Apartado 15}
 #solucion
 
 ```
 
 Interpreta el siguiente código... ¿cuándo puede ser interesante la versión 2) de la consulta?
 
-```{r}
+```{r Apartado 16}
 #consulta1
 jtMhard<-setEvidence(jt, nodes=c("M"), states=c("h"))
 querygrain(jtMhard,nodes=c("B"),type="marginal")
