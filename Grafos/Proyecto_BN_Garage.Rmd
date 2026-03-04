@@ -36,6 +36,7 @@ library(bnlearn)
 
 #solucion
 dag <- model2network("[A][T][M|A:T][SP|M][B|M]")
+graphviz.plot(dag, layout="dot", shape="circle")
 ```
 
 ## CPT, Tablas de probabilidad condicionada
