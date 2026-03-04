@@ -157,12 +157,16 @@ Determina cómo se modifica la probabilidad de cambiar los frenos si sabemos que
 
 ```{r Apartado 12}
 #solucion
+# Sabiendo que el vehículo es viejo
 A_Old<-setEvidence(Garage,nodes="A",states = "Old")
 q_A_Old<-querygrain(A_Old,node="B",type="marginal")$B
 q_A_Old
+
+# Sin saber que el vehículo es viejo
+querygrain(Garage,node="B",type="marginal")$B
 ```
 
-**Respuesta:** 
+**Respuesta:** La probabilidad de cambiar los frenos ha aumentado en un 12% al considerar que el vehículo es viejo. Este razonamiento es causal debido a que observamos como los nodos padre influyen a sus descendientes siguiendo un camino causal (orden de las flechas).
 
 
 Determina cómo se modifica la probabilidad de que el vehículo sea nuevo, cuando sabemos que necesita un cambio de bujías y de frenos. ¿(según las diapositivas de clase) es razonamiento evidencial o causal?
