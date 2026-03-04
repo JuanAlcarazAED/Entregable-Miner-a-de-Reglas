@@ -157,7 +157,9 @@ Determina cómo se modifica la probabilidad de cambiar los frenos si sabemos que
 
 ```{r Apartado 12}
 #solucion
-
+A_Old<-setEvidence(Garage,nodes="A",states = "Old")
+q_A_Old<-querygrain(A_Old,node="SP",type="marginal")$SP
+q_A_Old
 ```
 
 Determina cómo se modifica la probabilidad de que el vehículo sea nuevo, cuando sabemos que necesita un cambio de bujías y de frenos. ¿(según las diapositivas de clase) es razonamiento evidencial o causal?
