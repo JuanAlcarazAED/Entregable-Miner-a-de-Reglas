@@ -149,7 +149,7 @@ indices<-arrayInd(which.max(q6),.dim=dim(q6))
 c(max(q6),mapply(`[`, nombres, indices))
 ```
 
-**Respuesta:** los más común es un coche viejo (`A = 3`, que significa `"Old"`), modelo A2, con kilometraje alto, al cual hay que cambiarle ni las bujías ni los frenos. El resultado es intuitivo, pues es esperable que los coches de mayor kilometraje y más antiguos, cambien sus piezas de forma frecuente, debido al desgaste por el uso y la edad.
+**Respuesta:** los más común es un coche viejo, modelo A2, con kilometraje alto, al cual hay que cambiarle ni las bujías ni los frenos. El resultado es intuitivo, pues es esperable que los coches de mayor kilometraje y más antiguos, cambien sus piezas de forma frecuente, debido al desgaste por el uso y la edad.
 
 ## Razonamiento con Evidencias
 
@@ -158,9 +158,12 @@ Determina cómo se modifica la probabilidad de cambiar los frenos si sabemos que
 ```{r Apartado 12}
 #solucion
 A_Old<-setEvidence(Garage,nodes="A",states = "Old")
-q_A_Old<-querygrain(A_Old,node="SP",type="marginal")$SP
+q_A_Old<-querygrain(A_Old,node="B",type="marginal")$B
 q_A_Old
 ```
+
+**Respuesta:** 
+
 
 Determina cómo se modifica la probabilidad de que el vehículo sea nuevo, cuando sabemos que necesita un cambio de bujías y de frenos. ¿(según las diapositivas de clase) es razonamiento evidencial o causal?
 
