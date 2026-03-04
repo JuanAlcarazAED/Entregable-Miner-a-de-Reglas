@@ -120,7 +120,15 @@ Determina el Kilometraje medio para cada tipo de coche. Supón que `h=high=15000
 
 ```{r Apartado 9}
 #solución 
-
+q4<-querygrain(Garage,node=c("T","M"),type="joint")
+millas_tipo <- ftable(q4,col.vars = "T")
+millas_tipo[1,] <- millas_tipo[1,]*150000
+millas_tipo[2,] <- millas_tipo[2,]*50000
+millas_tipo
+millas_A1 <- colSums(millas_tipo)[1]
+millas_A2 <- colSums(millas_tipo)[2]
+millas_A1
+millas_A2
 ```
 
 Nos llama la grúa al taller y sabemos que nos llega un coche de tal edad y tipo. ¿Qué probabilidad esperamos de cambiarle los frenos? **Nota: mira la ayuda de querygrain para condicionar por 2 variables**
