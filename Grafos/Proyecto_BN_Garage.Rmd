@@ -74,7 +74,7 @@ cpt <- list(A=A.prob, T=T.prob, M=M.prob, SP=SP.prob, B=B.prob)
 Unimos el grafo y las distribuciones locales para crear la *Red Bayesiana*.
 
 ```{r Apartado 4}
-bn_Garage <- custom.fit(dag, cpt)
+bn <- custom.fit(dag, cpt)
 ```
 
 # Inferencia
@@ -85,7 +85,7 @@ Crea el árbol de inferencia `junction tree` para acelerar los cálculos de las 
 
 ```{r Apartado 5}
 library(gRain)
-jt <- compile(as.grain(bn_Garage))
+jt <- compile(as.grain(bn))
 summary(jt)
 ```
 
@@ -99,6 +99,8 @@ q1 <- querygrain(jt, nodes=c("M"), type="marginal")$M
 q1
 ```
 
+**Respuesta:** el resultado más esperable cuando no se tiene ninguna evidencia es un vehículo con un kilometraje alto.
+
 Interpreta la etiquetas de la Edad en función del Kilometraje.
 
 ```{r Apartado 7}
@@ -106,6 +108,7 @@ Interpreta la etiquetas de la Edad en función del Kilometraje.
 q2 <- querygrain(jt,node=c("A","M"),type="conditional")
 ftable(q2,col.vars = "A")
 ```
+**Respuesta:** los vehículos con kilometraje alto suelen ser viejos y es poco probable que sean nuevos, mientras que aquellos con kilometraje bajo suelen ser nuevos y es poco probable que sean viejos. Para edad media ambos tipos de kilometraje presentan probabilidades intermedias entre las correspondientes a sus otras edades. 
 
 ¿Qué combinación de Edad y tipo de coche es menos frecuente?
 
@@ -124,11 +127,13 @@ q4<-querygrain(jt,node=c("T","M"),type="joint")
 millas_tipo <- ftable(q4,col.vars = "T")
 millas_tipo[1,] <- millas_tipo[1,]*150000
 millas_tipo[2,] <- millas_tipo[2,]*50000
-millas_tipo
+
 millas_A1 <- colSums(millas_tipo)[1]
 millas_A2 <- colSums(millas_tipo)[2]
-millas_A1
-millas_A2
+
+cat("El kilometraje medio para cada tipo de coche es:\n")
+cat("- A1:",millas_A1, "millas \n")
+cat("- A2:",millas_A2, "millas")
 ```
 
 Nos llama la grúa al taller y sabemos que nos llega un coche de tal edad y tipo. ¿Qué probabilidad esperamos de cambiarle los frenos? **Nota: mira la ayuda de querygrain para condicionar por 2 variables**
@@ -138,6 +143,8 @@ Nos llama la grúa al taller y sabemos que nos llega un coche de tal edad y tipo
 q5 <- querygrain(jt, nodes=c("B", "A", "T"), type="conditional")
 ftable(q5,col.vars="B")
 ```
+
+**Respuesta:** la probabilidad de cambiar los frenos a un coche de cierta edad y tipo viene dada por la columna "Yes"
 
 ¿Cuál es la situación más probable (MAP) en nuestro taller? ¿tiene sentido?
 
@@ -157,45 +164,46 @@ Determina cómo se modifica la probabilidad de cambiar los frenos si sabemos que
 
 ```{r Apartado 12}
 #solucion
-# Sabiendo que el vehículo es viejo
+cat("Sabiendo que el vehículo es viejo:\n")
 A_Old<-setEvidence(jt,nodes="A",states = "Old")
 q_A_Old<-querygrain(A_Old,node="B",type="marginal")$B
 q_A_Old["Yes"]
 
-# Sin saber que el vehículo es viejo
+cat("\nSin saber si el vehículo es viejo:\n")
 querygrain(jt,node="B",type="marginal")$B["Yes"]
 ```
 
-**Respuesta:** La probabilidad de cambiar los frenos ha aumentado en un 12% al considerar que el vehículo es viejo. Este razonamiento es causal debido a que observamos cómo los nodos padre influyen a sus descendientes siguiendo un camino causal (orden de las flechas).
-
+**Respuesta:** la probabilidad de cambiar los frenos ha aumentado en un 12% al considerar que el vehículo es viejo. Este razonamiento es causal debido a que observamos cómo los nodos padre influyen a sus descendientes siguiendo un camino causal (orden de las flechas).
 
 Determina cómo se modifica la probabilidad de que el vehículo sea nuevo, cuando sabemos que necesita un cambio de bujías y de frenos. ¿(según las diapositivas de clase) es razonamiento evidencial o causal?
 
 ```{r Apartado 13}
 #solucion
-# Sabiendo que el vehículo necesita cambio de bujías (SP) y frenos (B)
+cat("Sabiendo que el vehículo necesita cambio de bujías (SP) y frenos (B):\n")
 SP_B<-setEvidence(jt,nodes=c("SP","B"),states = c("Yes","Yes"))
 q_SP_B<-querygrain(SP_B,node="A",type="marginal")$A
 q_SP_B["New"]
 
-# Sin saber que el vehículo necesita cambio de bujías (SP) y frenos (B)
+cat("\nSin saber si el vehículo necesita cambio de bujías (SP) y frenos (B):\n")
 querygrain(jt,node="A",type="marginal")$A["New"]
 ```
-**Respuesta:** La probabilidad de que el coche sea nuevo ha disminuido cerca de un 14% al considerar que el vehículo necesita cambiar las bujías y frenos. Este razonamiento es evidencial debido a que determinamos información de los nodos padres con lo que ya sabemos de los descendientes, siguiendo el sentido inverso en las flechas del grafo.
-
+**Respuesta:** la probabilidad de que el coche sea nuevo ha disminuido cerca de un 14% al considerar que el vehículo necesita cambiar las bujías y frenos. Este razonamiento es evidencial debido a que determinamos información de los nodos padres con lo que ya sabemos de los descendientes, siguiendo el sentido inverso de las flechas del grafo.
 
 Determina cómo se modifica la probabilidad de la edad para cada tipo de vehículo, cuando sabemos que Kilometraje es alto.
 
 ```{r Apartado 14}
 #solución 
+cat("Sabiendo que el kilometraje es alto:\n")
 M_H<-setEvidence(jt,nodes="M",states = "h")
 q_M_H<-querygrain(M_H, nodes=c("A", "T"), type="conditional")
-q_M_H
+ftable(q_M_H,col.vars="A")
 
-querygrain(jt, nodes=c("A"), type="marginal")
+cat("\nSin saber si el kilometraje es alto:\n")
+querygrain(jt, nodes=c("A"), type="marginal")$A 
+# En este caso da igual que condicionemos por el tipo de vehículo ya que son nodos independientes, obtendríamos los mismos resultados para ambos.
 ```
 
-**Respuesta:** La probabilidad de que el coche sea nuevo ha disminuido muy significativamente para ambos modelos, mientras que la probabilidad de que sea edad media ha aumenta muy ligeramente (entre un 4 y un 1%), y la probabilidad de ser viejo ha aumentado mucho (entre un 11 y un 13%).
+**Respuesta:** la probabilidad de que el coche sea nuevo ha disminuido muy significativamente para ambos modelos, mientras que la probabilidad de que sea edad media ha aumenta muy ligeramente (entre un 4 y un 1%), y la probabilidad de ser viejo ha aumentado mucho (entre un 11 y un 13%).
 
 ¿Cómo se modifican las expectativas (de las combinaciones) de las reparaciones cuando se modifica el tipo de coche?
 
@@ -207,16 +215,16 @@ T_A2<-setEvidence(jt,nodes="T",states = "A2")
 q_A1<-querygrain(T_A1, nodes=c("B", "SP"), type="joint")
 q_A2<-querygrain(T_A2, nodes=c("B", "SP"), type="joint")
 
-print("Probabilidades de reparación sin condicionar")
+cat("Probabilidades de reparación sin condicionar:\n")
 querygrain(jt, nodes=c("B", "SP"), type="joint")
 
-print("Probabilidades para el modelo de vehículo A1")
+cat("\nProbabilidades para el modelo de vehículo A1:\n")
 q_A1
-print("Probabilidades para el modelo de vehículo A2")
+cat("\nProbabilidades para el modelo de vehículo A2:\n")
 q_A2
 ```
 
-**Respuesta:** podemos ver que aunque las probabilidades no han cambiado de forma muy significativa, aunque si es destacable que es mucho más probable que no sea necesario cambiar ninguno de los componentes del coche si este es del modelo A1, mientras que la probabilidad de no necesitar ninguna reparación con el modelo A2 es un 10% menor, así que parece ser que el modelo A2 necesita más reparaciones en comparación con el A1.
+**Respuesta:** las probabilidades no han cambiado de forma muy significativa, aunque sí es destacable que es mucho más probable que no sea necesario cambiar ninguno de los componentes del coche si este es del modelo A1 que si es del modelo A2. Parece ser que el modelo A2 necesita generalmente más reparaciones en comparación con el A1.
 
 Interpreta el siguiente código... ¿cuándo puede ser interesante la versión (2) de la consulta?
 
@@ -241,49 +249,58 @@ Plantea 3 preguntas/cuestiones al "Garage". Desarrolla la consulta probabilista 
 *Nota: Puedes añadir/quitar cualquier elemento o dato que consideres necesario.*
 
 ```{r Apartado 17 consulta 1}
-# Consulta 1
+# Consulta 1: ¿Cuál es la edad de un vehículo sabiendo que este no necesita ninguna reparación?
 No_rep<-setEvidence(jt,nodes=c("B", "SP"),states = c("No", "No"))
 q_No_rep <- querygrain(No_rep, nodes="A", type = "marginal")$A
+cat("Sabiendo que no necesita reparaciones:\n")
 q_No_rep
+
+cat("\nSin saber si necesita reparaciones:\n")
 A.prob
 ```
 
-**Respuesta:**
+**Respuesta:** al no necesitar cambiar los frenos ni las bujías es más probable que el coche sea nuevo y menos que sea de edad media o incluso viejo. Este condicionamiento cambia la distribución que teníamos anteriormente, donde los coches nuevos eran menos frecuentes generalmente.
 
 ```{r Apartado 17 consulta 2}
-# Consulta 2
+# Consulta 2: ¿Cómo afecta el tipo de coche al kilometraje?
 q_Modelo <- querygrain(jt, nodes=c("M", "T"), type = "conditional")
 ftable(q_Modelo, col.vars="M")
 ```
 
-**Respuesta:**
-
+**Respuesta:** los vehículos de tipo A1 presentarán con un 8% más de probabilidades un kilometraje alto que uno bajo, mientras que en los A2 esta diferencia es de 36%, bastante más significativa. Este resultado nos indica que los coches A2 tienen mayor uso en general que los A1, explicando el resultado obtenido anteriormente sobre que los modelos A2 suelen necesitar más reparaciones que los A1.
 
 ```{r Apartado 17}
-# Consulta 3
+# Consulta 3: Añadimos una variable que nos indique que un coche está en estado de ir al desguace y condicionado por la edad y el kilometraje, ¿cómo de probable es que un coche con un kilometraje sea enviado al desguace?
 
-dag_ext <- dag
-dag_ext <- add.node(dag_ext, "EOL")
-dag_ext <- set.arc(dag_ext, from = "A", to = "EOL")
-dag_ext <- set.arc(dag_ext, from = "M", to = "EOL")
-graphviz.plot(dag_ext, layout = "dot", shape = "circle")
+# Modificamos el DAG y la red bayesiana con las nuevas probabilidades
+dag_d <- dag
+dag_d <- add.node(dag_d, "D")
+dag_d <- set.arc(dag_d, from = "A", to = "D")
+dag_d <- set.arc(dag_d, from = "M", to = "D")
+graphviz.plot(dag_d, layout = "dot", shape = "circle")
 
-EOL.lv <- c("yes", "no")
+D.lv <- c("Yes", "No")
 
-EOL.prob <- array(
-  c(0.95, 0.05,   # A=old, M=h  → muy probable fin de vida
-    0.50, 0.50,   # A=new, M=h  → kilometraje alto pero coche nuevo
-    0.40, 0.60,   # A=old, M=l  → viejo pero poco uso
-    0.05, 0.95),  # A=new, M=l  → casi imposible fin de vida
+D.prob <- array(
+  c(0.10, 0.90,   # A=New, M=h
+    0.25, 0.75,   # A=Middle, M=h
+    0.60, 0.40,   # A=Old, M=h
+    0.05, 0.95,   # A=New, M=l
+    0.10, 0.90,   # A=Middle, M=l
+    0.25, 0.75),  # A=Old, M=l
   dim = c(2, 3, 2),
-  dimnames = list(EOL = EOL.lv, A = A.lv, M = M.lv)
+  dimnames = list(D = D.lv, A = A.lv, M = M.lv)
 )
 
-cpt_ext <- c(cpt, list(EOL = EOL.prob))
-Garage_ext <- custom.fit(dag_ext, cpt_ext)
-jt_ext <- compile(as.grain(Garage_ext))
+cat("Probabilidades de ir al desguace respecto a A y M:\n")
+ftable(D.prob,col.vars="D")
 
-jt_eol <- setEvidence(jt_ext, nodes = "EOL", states = "yes")
-querygrain(jt_eol, nodes = "M", type = "marginal")$M
+cpt_d <- c(cpt, list(D = D.prob))
+bn_d <- custom.fit(dag_d, cpt_d)
+jt_d <- compile(as.grain(bn_d))
+
+cat("\nProbabilidades de kilometraje sabiendo que el coche va al desguace:\n")
+jt_D_Yes <- setEvidence(jt_d, nodes = "D", states = "Yes")
+querygrain(jt_D_Yes, nodes = "M", type = "marginal")$M
 ```
-**Respuesta:**
+**Respuesta:** 
