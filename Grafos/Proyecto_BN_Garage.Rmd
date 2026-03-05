@@ -303,4 +303,7 @@ cat("\nProbabilidades de kilometraje sabiendo que el coche va al desguace:\n")
 jt_D_Yes <- setEvidence(jt_d, nodes = "D", states = "Yes")
 querygrain(jt_D_Yes, nodes = "M", type = "marginal")$M
 ```
-**Respuesta:** 
+
+**Respuesta:** para este último aparatado decidimos incluir una nueva variable al grafo que es D, que representa el suceso de que el coche deba ir al desguace por ser irreparable la avería que padezca o por ser demasiado costosa, o por alguna otra razón. Esta variable se ve afectada por M y A, lógicamente cuanto mayor sea la edad de un coche y/o cuanto mayor sea el kilometraje más probable es que sea necesario mandarlo al desguace, las probabilidades asociadas a este nuevo nodo son ficticias aunque con la intención de que se asemejen algo a la realidad.
+
+La consulta específica que hemos realizado a la red bayesiana es sobre las probabilidades _a posteriori_ de la variable M, sabiendo que un coche se va a enviar al desguace, queremos saber la probabilidad de que su kilometraje sea alto o bajo. En la consulta se puede ver que la probabilidad de que el kilometraje sea alto es prácticamente del 90%, cosa que concuerda con la intuición que teníamos.
