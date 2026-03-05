@@ -47,7 +47,7 @@ Crea las matrices/arrays de probabilidad condicionada para cada nodo para la cre
 
 A.lv <- c("New", "Middle", "Old")
 T.lv <- c("A1", "A2")
-M.lv <- c("H", "L")
+M.lv <- c("h", "l")
 SP.lv <- c("Yes", "No")
 B.lv <- c("Yes", "No")
 
@@ -85,8 +85,8 @@ Crea el árbol de inferencia `junction tree` para acelerar los cálculos de las 
 
 ```{r Apartado 5}
 library(gRain)
-Garage <- compile(as.grain(bn_Garage))
-summary(Garage)
+jt <- compile(as.grain(bn_Garage))
+summary(jt)
 ```
 
 ## Razonamiento sin Evidencias
@@ -95,7 +95,7 @@ Determina las probabilidades del Kilometraje de los vehículos, $P(M)$, sin ning
 
 ```{r Apartado 6}
 #solucion
-q1 <- querygrain(Garage, nodes=c("M"), type="marginal")$M
+q1 <- querygrain(jt, nodes=c("M"), type="marginal")$M
 q1
 ```
 
@@ -103,7 +103,7 @@ Interpreta la etiquetas de la Edad en función del Kilometraje.
 
 ```{r Apartado 7}
 #solución 
-q2 <- querygrain(Garage,node=c("A","M"),type="conditional")
+q2 <- querygrain(jt,node=c("A","M"),type="conditional")
 ftable(q2,col.vars = "A")
 ```
 
@@ -111,7 +111,7 @@ ftable(q2,col.vars = "A")
 
 ```{r Apartado 8}
 #solución 
-q3 <- querygrain(Garage, nodes=c("A", "T"), type="joint")
+q3 <- querygrain(jt, nodes=c("A", "T"), type="joint")
 q3
 ```
 **Respuesta:** a la vista de la tabla, el tipo menos frecuente es un modelo A1 nuevo.
@@ -120,7 +120,7 @@ Determina el Kilometraje medio para cada tipo de coche. Supón que `h=high=15000
 
 ```{r Apartado 9}
 #solución 
-q4<-querygrain(Garage,node=c("T","M"),type="joint")
+q4<-querygrain(jt,node=c("T","M"),type="joint")
 millas_tipo <- ftable(q4,col.vars = "T")
 millas_tipo[1,] <- millas_tipo[1,]*150000
 millas_tipo[2,] <- millas_tipo[2,]*50000
@@ -135,7 +135,7 @@ Nos llama la grúa al taller y sabemos que nos llega un coche de tal edad y tipo
 
 ```{r Apartado 10}
 #solución 
-q5 <- querygrain(Garage, nodes=c("B", "A", "T"), type="conditional")
+q5 <- querygrain(jt, nodes=c("B", "A", "T"), type="conditional")
 ftable(q5,col.vars="B")
 ```
 
@@ -143,7 +143,7 @@ ftable(q5,col.vars="B")
 
 ```{r Apartado 11}
 #solucion
-q6 <- querygrain(Garage, nodes=c("A", "T", "M", "SP", "B"), type="joint")
+q6 <- querygrain(jt, nodes=c("A", "T", "M", "SP", "B"), type="joint")
 nombres<-dimnames(q6)
 indices<-arrayInd(which.max(q6),.dim=dim(q6))
 c(max(q6),mapply(`[`, nombres, indices))
@@ -158,12 +158,12 @@ Determina cómo se modifica la probabilidad de cambiar los frenos si sabemos que
 ```{r Apartado 12}
 #solucion
 # Sabiendo que el vehículo es viejo
-A_Old<-setEvidence(Garage,nodes="A",states = "Old")
+A_Old<-setEvidence(jt,nodes="A",states = "Old")
 q_A_Old<-querygrain(A_Old,node="B",type="marginal")$B
 q_A_Old["Yes"]
 
 # Sin saber que el vehículo es viejo
-querygrain(Garage,node="B",type="marginal")$B["Yes"]
+querygrain(jt,node="B",type="marginal")$B["Yes"]
 ```
 
 **Respuesta:** La probabilidad de cambiar los frenos ha aumentado en un 12% al considerar que el vehículo es viejo. Este razonamiento es causal debido a que observamos cómo los nodos padre influyen a sus descendientes siguiendo un camino causal (orden de las flechas).
@@ -174,12 +174,12 @@ Determina cómo se modifica la probabilidad de que el vehículo sea nuevo, cuand
 ```{r Apartado 13}
 #solucion
 # Sabiendo que el vehículo necesita cambio de bujías (SP) y frenos (B)
-SP_B<-setEvidence(Garage,nodes=c("SP","B"),states = c("Yes","Yes"))
+SP_B<-setEvidence(jt,nodes=c("SP","B"),states = c("Yes","Yes"))
 q_SP_B<-querygrain(SP_B,node="A",type="marginal")$A
 q_SP_B["New"]
 
 # Sin saber que el vehículo necesita cambio de bujías (SP) y frenos (B)
-querygrain(Garage,node="A",type="marginal")$A["New"]
+querygrain(jt,node="A",type="marginal")$A["New"]
 ```
 **Respuesta:** La probabilidad de que el coche sea nuevo ha disminuido cerca de un 14% al considerar que el vehículo necesita cambiar las bujías y frenos. Este razonamiento es evidencial debido a que determinamos información de los nodos padres con lo que ya sabemos de los descendientes, siguiendo el sentido inverso en las flechas del grafo.
 
@@ -188,17 +188,37 @@ Determina cómo se modifica la probabilidad de la edad para cada tipo de vehícu
 
 ```{r Apartado 14}
 #solución 
+M_H<-setEvidence(jt,nodes="M",states = "h")
+q_M_H<-querygrain(M_H, nodes=c("A", "T"), type="conditional")
+q_M_H
 
+querygrain(jt, nodes=c("A"), type="marginal")
 ```
+
+**Respuesta:** La probabilidad de que el coche sea nuevo ha disminuido muy significativamente para ambos modelos, mientras que la probabilidad de que sea edad media ha aumenta muy ligeramente (entre un 4 y un 1%), y la probabilidad de ser viejo ha aumentado mucho (entre un 11 y un 13%).
 
 ¿Cómo se modifican las expectativas (de las combinaciones) de las reparaciones cuando se modifica el tipo de coche?
 
 ```{r Apartado 15}
 #solucion
+T_A1<-setEvidence(jt,nodes="T",states = "A1")
+T_A2<-setEvidence(jt,nodes="T",states = "A2")
 
+q_A1<-querygrain(T_A1, nodes=c("B", "SP"), type="joint")
+q_A2<-querygrain(T_A2, nodes=c("B", "SP"), type="joint")
+
+print("Probabilidades de reparación sin condicionar")
+querygrain(jt, nodes=c("B", "SP"), type="joint")
+
+print("Probabilidades para el modelo de vehículo A1")
+q_A1
+print("Probabilidades para el modelo de vehículo A2")
+q_A2
 ```
 
-Interpreta el siguiente código... ¿cuándo puede ser interesante la versión 2) de la consulta?
+**Respuesta:** podemos ver que aunque las probabilidades no han cambiado de forma muy significativa, aunque si es destacable que es mucho más probable que no sea necesario cambiar ninguno de los componentes del coche si este es del modelo A1, mientras que la probabilidad de no necesitar ninguna reparación con el modelo A2 es un 10% menor, así que parece ser que el modelo A2 necesita más reparaciones en comparación con el A1.
+
+Interpreta el siguiente código... ¿cuándo puede ser interesante la versión (2) de la consulta?
 
 ```{r Apartado 16}
 #consulta1
@@ -212,6 +232,7 @@ querygrain(jtMsoft,nodes=c("B"),type="marginal")
 #consulta3
 querygrain(jt,nodes=c("B"),type="marginal")
 ```
+**Respuesta:** el código anterior sirve para realizar tres consultas diferentes a la red bayesiana, relacionadas con el nodo B, condicionándolo de diferentes maneras. La consulta (2), condiciona de manera parcial, ya que impone unas probabilidades _a priori_ para la variable M, y a partir de ellas se calculan las probabilidades de B. Este tipo de consultas son muy útiles cuando solo disponemos de información parcial sobre el problema, por ejemplo podríamos tener un taller que no sabe el kilometraje que tienen los coches que le van a llegar, pero mediante los datos históricos se pueden estimar las probabilidades de que llegue un tipo u otro de coche, y la red bayesiana nos ayudará a calcular el resto de probabilidades condicionadas.
 
 # Reto analista.
 
@@ -219,6 +240,50 @@ Plantea 3 preguntas/cuestiones al "Garage". Desarrolla la consulta probabilista 
 
 *Nota: Puedes añadir/quitar cualquier elemento o dato que consideres necesario.*
 
-```{r}
-
+```{r Apartado 17 consulta 1}
+# Consulta 1
+No_rep<-setEvidence(jt,nodes=c("B", "SP"),states = c("No", "No"))
+q_No_rep <- querygrain(No_rep, nodes="A", type = "marginal")$A
+q_No_rep
+A.prob
 ```
+
+**Respuesta:**
+
+```{r Apartado 17 consulta 2}
+# Consulta 2
+q_Modelo <- querygrain(jt, nodes=c("M", "T"), type = "conditional")
+ftable(q_Modelo, col.vars="M")
+```
+
+**Respuesta:**
+
+
+```{r Apartado 17}
+# Consulta 3
+
+dag_ext <- dag
+dag_ext <- add.node(dag_ext, "EOL")
+dag_ext <- set.arc(dag_ext, from = "A", to = "EOL")
+dag_ext <- set.arc(dag_ext, from = "M", to = "EOL")
+graphviz.plot(dag_ext, layout = "dot", shape = "circle")
+
+EOL.lv <- c("yes", "no")
+
+EOL.prob <- array(
+  c(0.95, 0.05,   # A=old, M=h  → muy probable fin de vida
+    0.50, 0.50,   # A=new, M=h  → kilometraje alto pero coche nuevo
+    0.40, 0.60,   # A=old, M=l  → viejo pero poco uso
+    0.05, 0.95),  # A=new, M=l  → casi imposible fin de vida
+  dim = c(2, 3, 2),
+  dimnames = list(EOL = EOL.lv, A = A.lv, M = M.lv)
+)
+
+cpt_ext <- c(cpt, list(EOL = EOL.prob))
+Garage_ext <- custom.fit(dag_ext, cpt_ext)
+jt_ext <- compile(as.grain(Garage_ext))
+
+jt_eol <- setEvidence(jt_ext, nodes = "EOL", states = "yes")
+querygrain(jt_eol, nodes = "M", type = "marginal")$M
+```
+**Respuesta:**
